@@ -7,7 +7,7 @@ import { Button } from '../../components/atoms/Button';
 
 export default function EvaluacionPage() {
   const { score, decreaseScore } = useEvaluationStore();
-  
+
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
 
@@ -23,7 +23,7 @@ export default function EvaluacionPage() {
 
   const handleFalto = () => {
     // Puedes ajustar cuánto resta cada falta (ej: 10 puntos en lugar de 5 para que cuadre con el /100)
-    decreaseScore(10); 
+    decreaseScore(10);
     siguientePaso();
   };
 
@@ -46,12 +46,12 @@ export default function EvaluacionPage() {
           </div>
           <h2 className="text-3xl font-bold mb-4 text-gray-800">Evaluación Terminada</h2>
           <p className="text-xl mb-2">Puntaje Final:</p>
-          
+
           {/* Mostramos la base sobre 100 */}
           <div className={`text-6xl font-extrabold mb-6 ${score >= 80 ? 'text-green-600' : 'text-red-600'}`}>
             {score}/100
           </div>
-          
+
           {/* Lógica intacta: >= 80 es Positiva, < 80 es Negativa */}
           <p className="text-lg font-medium text-gray-600 mb-8">
             Racha: {score >= 80 ? '🔥 Positiva' : '📉 Negativa'}
@@ -69,7 +69,7 @@ export default function EvaluacionPage() {
         <div className="flex justify-between items-center">
           {/* Aquí reemplazamos el texto "EL ESPAÑOL" por el Logo Oficial */}
           <div className="bg-white/10 p-1 rounded-lg">
-             <Image src="/logo.png" alt="Logo El Español" width={100} height={50} className="object-contain" />
+            <Image src="/logo.png" alt="Logo El Español" width={100} height={50} className="object-contain" />
           </div>
           <div className="bg-white/20 px-4 py-2 rounded-lg font-bold">
             Pts: {score}
