@@ -1,28 +1,33 @@
 import React from 'react';
 
-// Definimos qué información necesita recibir nuestro botón
-interface ButtonProps {
-    label: string;
-    variant: 'success' | 'danger' | 'primary';
-    icon?: string;
-    onClick: () => void;
+// Definimos las propiedades (props) que aceptará nuestro botón
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  label: string;
+  variant?: 'primary' | 'success' | 'danger' | 'warning';
+  icon?: string;
 }
 
-export const Button = ({ label, variant, icon, onClick }: ButtonProps) => {
-    // Estilos base de Tailwind: Botón grande, texto grande y bordes redondeados
-    const baseStyle = "w-full py-4 text-xl font-bold rounded-xl flex items-center justify-center gap-3 shadow-md active:scale-95 transition-all";
+export const Button: React.FC<ButtonProps> = ({ 
+  label, 
+  variant = 'primary', 
+  icon, 
+  className = '', 
+  ...props 
+}) => {
+  // Manejo centralizado de los colores corporativos y estados
+  let bgColor = 'bg-[#8B0000] hover:bg-red-800 text-white'; // Rojo "El Español" por defecto
+  
+  if (variant === 'success') bgColor = 'bg-green-600 hover:bg-green-700 text-white';
+  if (variant === 'danger') bgColor = 'bg-red-600 hover:bg-red-700 text-white';
+  if (variant === 'warning') bgColor = 'bg-yellow-500 hover:bg-yellow-600 text-gray-900';
 
-    // Colores según el tipo de botón
-    const variants = {
-        success: "bg-green-600 text-white hover:bg-green-700",
-        danger: "bg-red-600 text-white hover:bg-red-700",
-        primary: "bg-blue-600 text-white hover:bg-blue-700"
-    };
-
-    return (
-        <button className={`${baseStyle} ${variants[variant]}`} onClick={onClick}>
-            {icon && <span className="text-2xl">{icon}</span>}
-            {label}
-        </button>
-    );
+  return (
+    <button
+      className={`w-full font-extrabold py-4 rounded-xl transition-all shadow-md flex items-center justify-center gap-3 disabled:opacity-50 ${bgColor} ${className}`}
+      {...props}
+    >
+      {icon && <span className="text-2xl">{icon}</span>}
+      {label}
+    </button>
+  );
 };
