@@ -5,7 +5,6 @@ import { iniciarSesion } from '../services/authService';
 export const useLogin = () => {
   const router = useRouter();
   const [cedula, setCedula] = useState('');
-  const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -15,7 +14,9 @@ export const useLogin = () => {
     setError(null);
 
     try {
-      const userData: any = await iniciarSesion(cedula, pin);
+      // TRUCO DE CERO FRICCIÓN: Usamos la misma cédula como PIN interno para Firebase
+      const pinInterno = cedula; 
+      const userData: any = await iniciarSesion(cedula, pinInterno);
       
       // Enrutamiento por Roles
       if (userData && userData.rol === 'Admin') {
@@ -25,7 +26,7 @@ export const useLogin = () => {
       }
     } catch (err: any) {
       console.error(err);
-      setError('Credenciales incorrectas. Verifica tu cédula y PIN.');
+      setError('Cédula no autorizada. Consulta con el Administrador.');
     } finally {
       setIsLoading(false);
     }
@@ -33,7 +34,6 @@ export const useLogin = () => {
 
   return {
     cedula, setCedula,
-    pin, setPin,
     error,
     isLoading,
     handleLogin

@@ -24,3 +24,17 @@ body {
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
+
+/* Ocultar flechitas en inputs numéricos (Chrome, Safari, Edge, Opera) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none; /* ← Esta es la línea estándar que el editor te pedía */
+  margin: 0;
+}
+
+/* Ocultar flechitas en inputs numéricos (Firefox) */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield; /* ← Y esta para los demás navegadores */
+}
