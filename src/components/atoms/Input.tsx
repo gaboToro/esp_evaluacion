@@ -1,16 +1,22 @@
 import React from 'react';
 
+// Definimos las propiedades del cuadro de texto
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
 }
 
-export const Input = ({ label, ...props }: InputProps) => {
+export const Input: React.FC<InputProps> = ({ label, className = '', ...props }) => {
   return (
-    <div className="flex flex-col gap-2 w-full text-left">
-      <label className="text-gray-900 font-extrabold text-lg">{label}</label>
-      <input 
-        className="w-full p-4 border-2 border-gray-400 rounded-xl text-xl text-gray-900 bg-gray-50 placeholder-gray-500 focus:border-[#8B0000] focus:bg-white focus:outline-none transition-all shadow-sm"
-        {...props} 
+    <div className="flex flex-col w-full">
+      {/* Etiqueta del campo (Label) con alto contraste */}
+      <label className="block text-sm font-extrabold text-gray-700 mb-2">
+        {label}
+      </label>
+      
+      {/* Cuadro de texto amplio, legible y con el color corporativo al enfocarse */}
+      <input
+        className={`w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-gray-900 font-medium placeholder-gray-400 transition-all focus:outline-none focus:border-[#8B0000] focus:ring-4 focus:ring-red-900/10 ${className}`}
+        {...props}
       />
     </div>
   );
