@@ -20,7 +20,9 @@ export const useEvaluacion = () => {
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
-  const [detallesEvaluacion, setDetallesEvaluacion] = useState<{descripcion: string, cumplio: boolean}[]>([]);
+  
+  // Se actualiza la interfaz para soportar la URL de evidencia opcional
+  const [detallesEvaluacion, setDetallesEvaluacion] = useState<{descripcion: string, cumplio: boolean, evidenciaUrl?: string | null}[]>([]);
   
   const [isFinished, setIsFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,13 +89,18 @@ export const useEvaluacion = () => {
   };
 
   const handleCumplio = () => {
-    const nuevosDetalles = [...detallesEvaluacion, { descripcion: tasks[currentTaskIndex].descripcion, cumplio: true }];
+    const nuevosDetalles = [...detallesEvaluacion, { descripcion: tasks[currentTaskIndex].descripcion, cumplio: true, evidenciaUrl: null }];
     setDetallesEvaluacion(nuevosDetalles);
     siguientePaso(score, nuevosDetalles); 
   };
 
-  const handleFalto = () => {
-    const nuevosDetalles = [...detallesEvaluacion, { descripcion: tasks[currentTaskIndex].descripcion, cumplio: false }];
+  // Se añade el parámetro opcional urlEvidencia para resolver el error de TypeScript
+  const handleFalto = (urlEvidencia?: string) => {
+    const nuevosDetalles = [...detallesEvaluacion, { 
+      descripcion: tasks[currentTaskIndex].descripcion, 
+      cumplio: false,
+      evidenciaUrl: urlEvidencia || null 
+    }];
     setDetallesEvaluacion(nuevosDetalles);
     decreaseScore(puntosPorFalta); 
     siguientePaso(score - puntosPorFalta, nuevosDetalles); 
@@ -122,12 +129,18 @@ export const useEvaluacion = () => {
         await dbService.crearNotificacion({ mensaje: mensajePremio, fecha: fechaEcuador, timestamp: Date.now(), leido: false });
       }
 
+      // Se extraen todas las URLs de evidencia para el arreglo general
+      const arrayFotosEvidencia = detallesFinales
+        .map(detalle => detalle.evidenciaUrl)
+        .filter(url => url !== null);
+
       await dbService.guardarEvaluacion({
         evaluadorNombre: userName, evaluadorCedula: userCedula,
         evaluadoNombre: selectedEvaluado.name, evaluadoCedula: selectedEvaluado.id,
         areaEvaluada: selectedArea, puntajeTotal: puntajeFinalRedondeado,
         racha: rachaActualTurno, fecha: fechaEcuador, fechaCorta: fechaSoloDia, 
-        detalles: detallesFinales, fotosEvidencia: [], 
+        detalles: detallesFinales, 
+        fotosEvidencia: arrayFotosEvidencia, // Se almacenan las URLs capturadas
       });
       await dbService.actualizarRachaUsuario(selectedEvaluado.id, nuevoTipoRacha, nuevoContador);
     }
