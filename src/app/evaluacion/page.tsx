@@ -3,6 +3,7 @@
 import React from 'react';
 import { Button } from '../../components/atoms/Button';
 import { useEvaluacion } from '../../hooks/useEvaluacion';
+import { BotonEvidencia } from '../../components/molecules/BotonEvidencia';
 
 export default function EvaluacionPage() {
   const {
@@ -101,7 +102,12 @@ export default function EvaluacionPage() {
         </div>
         <div className="space-y-4 mt-auto mb-8">
           <Button label="SÍ CUMPLIÓ" variant="success" icon="✅" onClick={handleCumplio} />
-          <Button label="FALTÓ (Evidencia Omitida)" variant="danger" icon="❌" onClick={handleFalto} />
+          
+          {/* Se reemplaza el botón estático por la molécula conectada a Supabase */}
+          <BotonEvidencia 
+            idTarea={tasks[currentTaskIndex]?.id} 
+            onEvidenciaGuardada={(urlEvidencia) => handleFalto(urlEvidencia)} 
+          />
         </div>
       </main>
     </div>
