@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { useAdmin } from '../../hooks/useAdmin';
 import { AdminDashboard } from '../../components/organisms/AdminDashboard';
@@ -10,8 +10,11 @@ import { AdminUsers } from '../../components/organisms/AdminUsers';
 export default function AdminPage() {
   const {
     isLoading, vistaActual, setVistaActual, evaluacionSeleccionada, setEvaluacionSeleccionada,
-    notificaciones, marcarNotificacionLeida, handleLogout, ...props 
+    notificaciones, marcarNotificacionLeida, handleLogout, ...props
   } = useAdmin();
+
+  // Estado para controlar qué imagen se está visualizando en pantalla completa
+  const [imagenAmpliada, setImagenAmpliada] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -59,7 +62,7 @@ export default function AdminPage() {
       {vistaActual === 'dashboard' && <AdminDashboard {...props} setEvaluacionSeleccionada={setEvaluacionSeleccionada} />}
       {vistaActual === 'tareas' && <AdminTasks {...props} />}
       {vistaActual === 'usuarios' && <AdminUsers {...props} />}
-      
+
       {/* MODAL DETALLES */}
       {evaluacionSeleccionada && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-fade-in">
@@ -79,8 +82,25 @@ export default function AdminPage() {
               <div className="space-y-2 mb-6">
                 {evaluacionSeleccionada.detalles?.map((detalle: any, index: number) => (
                   <div key={index} className={`flex justify-between items-start p-3 rounded-lg border-l-4 ${detalle.cumplio ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`}>
-                    <span className={`text-sm font-medium ${!detalle.cumplio ? 'text-red-700 font-extrabold' : 'text-gray-700'}`}>{detalle.descripcion}</span>
-                    <span className="shrink-0 ml-4">{detalle.cumplio ? '✅ Cumplió' : '❌ Faltó'}</span>
+
+                    {/* Contenedor ajustado para organizar el texto y el botón */}
+                    <div className="flex flex-col gap-2">
+                      <span className={`text-sm font-medium ${!detalle.cumplio ? 'text-red-700 font-extrabold' : 'text-gray-700'}`}>
+                        {detalle.descripcion}
+                      </span>
+
+                      {/* Botón de Evidencia Condicional */}
+                      {!detalle.cumplio && detalle.evidenciaUrl && (
+                        <button
+                          onClick={() => setImagenAmpliada(detalle.evidenciaUrl)}
+                          className="mt-1 text-xs bg-red-100 text-red-800 border border-red-200 px-3 py-1 rounded-md w-fit font-bold hover:bg-red-200 transition-colors flex items-center gap-1 shadow-sm"
+                        >
+                          📷 Ver Evidencia
+                        </button>
+                      )}
+                    </div>
+
+                    <span className="shrink-0 ml-4 font-bold">{detalle.cumplio ? '✅ Cumplió' : '❌ Faltó'}</span>
                   </div>
                 ))}
               </div>
@@ -88,6 +108,28 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* VISOR DE IMAGEN (LIGHTBOX) */}
+      {imagenAmpliada && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-60 p-4 backdrop-blur-sm animate-fade-in">
+          {/* Botón flotante para cerrar (La X) */}
+          <button 
+            onClick={() => setImagenAmpliada(null)} 
+            className="absolute top-6 right-6 text-white bg-white/20 hover:bg-red-600 rounded-full w-12 h-12 flex items-center justify-center font-bold text-2xl transition-colors shadow-lg"
+          >
+            ✕
+          </button>
+          
+          {/* Imagen renderizada */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src={imagenAmpliada} 
+            alt="Evidencia fotográfica ampliada" 
+            className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
+          />
+        </div>
+      )}
+
     </div>
   );
 }
