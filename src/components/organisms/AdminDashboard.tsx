@@ -5,8 +5,25 @@ const COLORS = ['#16a34a', '#dc2626'];
 
 export const AdminDashboard = ({ 
   statsRachas, promedioAreas, datosParaTabla, filtroUsuario, setFiltroUsuario, 
-  usuariosUnicos, filtroArea, setFiltroArea, ordenFecha, setOrdenFecha, setEvaluacionSeleccionada 
+  usuariosUnicos, filtroArea, setFiltroArea, ordenFecha, setOrdenFecha, setEvaluacionSeleccionada,
+  listaUsuariosBD
 }: any) => {
+
+  // Lógica para el termómetro individual (solo se usa si hay un usuario seleccionado)
+  const usuarioSeleccionado = filtroUsuario !== 'General' && listaUsuariosBD 
+    ? listaUsuariosBD.find((u: any) => u.name === filtroUsuario) 
+    : null;
+
+  const rachaActual = usuarioSeleccionado?.contadorRacha || 0;
+  const tipoRacha = usuarioSeleccionado?.tipoRacha || 'Positiva';
+  
+  // Datos para el gráfico individual (Progreso hacia 4)
+  const colorRacha = tipoRacha === 'Positiva' ? '#16a34a' : '#dc2626';
+  const rachaGaugeData = [
+    { value: Math.min(rachaActual, 4), fill: colorRacha }, 
+    { value: Math.max(4 - rachaActual, 0), fill: '#f3f4f6' } 
+  ];
+
   return (
     <div className="animate-fade-in">
       <div className="flex justify-end mb-6">
@@ -19,17 +36,73 @@ export const AdminDashboard = ({
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <h2 className="text-xl font-bold text-gray-700 mb-4 text-center">Termómetro de Rachas</h2>
-          <div className="h-64 w-full"><ResponsiveContainer><PieChart><Pie data={statsRachas} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">{statsRachas.map((entry: any, index: number) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><RechartsTooltip /><Legend /></PieChart></ResponsiveContainer></div>
+      {/* 
+        Cambio de Cuadrícula: 
+        - 2 columnas si es 'General'
+        - 3 columnas si es un Usuario Específico
+      */}
+      <div className={`grid grid-cols-1 ${filtroUsuario === 'General' ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-8 mb-8 transition-all duration-500`}>
+        
+        {/* 1. GRÁFICO HISTÓRICO (Siempre visible) */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm relative">
+          <h2 className="text-xl font-bold text-gray-700 mb-4 text-center">
+            {filtroUsuario === 'General' ? 'Histórico General' : 'Historial del Evaluado'}
+          </h2>
+          <div className="h-64 w-full relative">
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie data={statsRachas} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                  {statsRachas.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
+
+        {/* 2. RACHA EN VIVO (Aparece SOLO al seleccionar un usuario) */}
+        {filtroUsuario !== 'General' && (
+          <div className="bg-white p-6 rounded-2xl shadow-sm relative animate-fade-in">
+            <h2 className="text-xl font-bold text-gray-700 mb-4 text-center">Racha Actual en Vivo</h2>
+            <div className="h-64 w-full relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={rachaGaugeData} cx="50%" cy="50%" innerRadius={65} outerRadius={85} dataKey="value" stroke="none" startAngle={90} endAngle={-270} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-4xl font-extrabold" style={{ color: colorRacha }}>
+                  {rachaActual}/4
+                </span>
+                <span className="text-sm font-bold text-gray-500 uppercase mt-1 tracking-wider">
+                  {tipoRacha}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* 3. PROMEDIO POR ÁREAS (Siempre visible) */}
         <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <h2 className="text-xl font-bold text-gray-700 mb-4 text-center">Rendimiento Promedio por Área</h2>
-          <div className="h-64 w-full"><ResponsiveContainer><BarChart data={promedioAreas}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="area" /><YAxis domain={[0, 100]} /><RechartsTooltip cursor={{fill: 'transparent'}} /><Bar dataKey="promedio" fill="#8B0000" radius={[2, 2, 2, 2]} /></BarChart></ResponsiveContainer></div>
+          <h2 className="text-xl font-bold text-gray-700 mb-4 text-center">Rendimiento por Área</h2>
+          <div className="h-64 w-full">
+            <ResponsiveContainer>
+              <BarChart data={promedioAreas}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="area" />
+                <YAxis domain={[0, 100]} />
+                <RechartsTooltip cursor={{fill: 'transparent'}} />
+                <Bar dataKey="promedio" fill="#8B0000" radius={[2, 2, 2, 2]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
+      {/* TABLA DE AUDITORÍA */}
       <div className="bg-white p-6 rounded-2xl shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <h2 className="text-xl font-bold text-gray-800">Registro de Auditoría</h2>
