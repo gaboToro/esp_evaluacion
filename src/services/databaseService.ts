@@ -1,5 +1,6 @@
 import { collection, getDocs, query, where, doc, getDoc, addDoc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { serverTimestamp } from 'firebase/firestore';
 
 // ==========================================
 // MÓDULO DE USUARIOS
@@ -84,9 +85,14 @@ export const verificarSiYaEvaluoHoy = async (campoCedula: 'evaluadorCedula' | 'e
 };
 
 export const guardarEvaluacion = async (data: any) => {
-  await addDoc(collection(db, "evaluaciones"), data);
+  // Combinamos los datos entrantes con el nuevo campo fechaTimestamp
+  const dataConTimestamp = {
+    ...data,
+    fechaTimestamp: serverTimestamp()
+  };
+  
+  await addDoc(collection(db, "evaluaciones"), dataConTimestamp);
 };
-
 
 // ==========================================
 // MÓDULO DE NOTIFICACIONES
