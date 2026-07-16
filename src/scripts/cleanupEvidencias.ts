@@ -4,37 +4,41 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 
-// Inicialización inteligente sin activar errores de compilación en Turbopack
-if (!getApps().length) {
-  let serviceAccount;
-  
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    // En Vercel: lee directamente desde la variable de entorno configurada
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  } else {
-    // En local: lee el archivo desde el disco en tiempo de ejecución usando fs
-    const filePath = path.join(process.cwd(), 'serviceAccountKey.json');
-    if (fs.existsSync(filePath)) {
-      serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+// Función auxiliar: Solo inicializa Firebase cuando se manda a llamar, NO durante el build
+function getAdminDb() {
+  if (!getApps().length) {
+    let serviceAccount;
+    
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     } else {
-      throw new Error('No se encontró FIREBASE_SERVICE_ACCOUNT ni el archivo serviceAccountKey.json local');
+      const filePath = path.join(process.cwd(), 'serviceAccountKey.json');
+      if (fs.existsSync(filePath)) {
+        serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      } else {
+        throw new Error('No se encontró FIREBASE_SERVICE_ACCOUNT ni el archivo serviceAccountKey.json local');
+      }
     }
-  }
 
-  initializeApp({ 
-    credential: cert(serviceAccount) 
-  });
+    initializeApp({ 
+      credential: cert(serviceAccount) 
+    });
+  }
+  return getFirestore();
 }
 
-const db = getFirestore();
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co', 
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
+);
 
 async function limpiarEvidenciasAntiguas() {
+  const db = getAdminDb(); // Se conecta a Firestore recién aquí adentro
   const haceDosMeses = new Date();
   haceDosMeses.setMonth(haceDosMeses.getMonth() - 2);
-  
+
   console.log(`\n--- INICIANDO LIMPIEZA ---`);
-  console.log(`Fecha límite (todo lo anterior a esto se borrará): ${haceDosMeses.toISOString()}`);
+  console.log(`Fecha límite: ${haceDosMeses.toISOString()}`);
 
   const snapshot = await db.collection('evaluaciones').get();
   console.log(`Se encontraron ${snapshot.size} evaluaciones en la base de datos.`);
@@ -43,14 +47,8 @@ async function limpiarEvidenciasAntiguas() {
     const data = doc.data();
     console.log(`\nRevisando documento ID: ${doc.id}`);
 
-    if (!data.fechaTimestamp) {
-      console.log(`  -> SALTADO: El documento no tiene el campo 'fechaTimestamp'.`);
-      continue;
-    }
-
-    // Validar si es un Timestamp de Firebase (debe tener el método toDate)
-    if (typeof data.fechaTimestamp.toDate !== 'function') {
-      console.log(`  -> SALTADO: 'fechaTimestamp' no es un Timestamp válido. Tipo actual: ${typeof data.fechaTimestamp}`);
+    if (!data.fechaTimestamp || typeof data.fechaTimestamp.toDate !== 'function') {
+      console.log(`  -> SALTADO: 'fechaTimestamp' no válido o inexistente.`);
       continue;
     }
 
@@ -64,39 +62,24 @@ async function limpiarEvidenciasAntiguas() {
       const detalles: any[] = data.detalles || [];
       const urlsParaBorrar: string[] = [];
 
-      // 1. Recolectar URLs del arreglo general
-      fotos.forEach(url => {
-        if (url) urlsParaBorrar.push(url);
-      });
+      fotos.forEach(url => { if (url) urlsParaBorrar.push(url); });
 
-      // 2. Recolectar URLs de los detalles y preparar el nuevo arreglo sin URLs
       const detallesActualizados = detalles.map(detalle => {
         if (detalle.evidenciaUrl) {
           urlsParaBorrar.push(detalle.evidenciaUrl);
-          return { ...detalle, evidenciaUrl: null }; // Dejamos la URL en null
+          return { ...detalle, evidenciaUrl: null };
         }
         return detalle;
       });
 
-      if (urlsParaBorrar.length === 0) {
-        console.log(`  -> No hay fotos para borrar en este documento.`);
-      }
-
-      // 3. Borrar todas las URLs recolectadas de Supabase
       for (const url of urlsParaBorrar) {
         const fileName = url.split('/').pop()?.split('?')[0]; 
         if (fileName) {
           console.log(`  -> Intentando borrar de Supabase: ${fileName}`);
-          const { error } = await supabase.storage.from('evidencias').remove([fileName]);
-          if (error) {
-            console.error(`  -> ERROR borrando en Supabase:`, error);
-          } else {
-            console.log(`  -> Archivo ${fileName} borrado exitosamente.`);
-          }
+          await supabase.storage.from('evidencias').remove([fileName]);
         }
       }
 
-      // 4. Actualizar Firebase: vaciar arreglo general y actualizar detalles
       await doc.ref.update({ 
         fotosEvidencia: [],
         detalles: detallesActualizados
