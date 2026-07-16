@@ -1,17 +1,24 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { createClient } from '@supabase/supabase-js';
+import fs from 'fs';
+import path from 'path';
 
-// Inicialización inteligente para local y producción (Vercel)
+// Inicialización inteligente sin activar errores de compilación en Turbopack
 if (!getApps().length) {
   let serviceAccount;
   
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    // En Vercel: lee desde la variable de entorno
+    // En Vercel: lee directamente desde la variable de entorno configurada
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   } else {
-    // En local: lee desde el archivo físico
-    serviceAccount = require('../../serviceAccountKey.json');
+    // En local: lee el archivo desde el disco en tiempo de ejecución usando fs
+    const filePath = path.join(process.cwd(), 'serviceAccountKey.json');
+    if (fs.existsSync(filePath)) {
+      serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } else {
+      throw new Error('No se encontró FIREBASE_SERVICE_ACCOUNT ni el archivo serviceAccountKey.json local');
+    }
   }
 
   initializeApp({ 
